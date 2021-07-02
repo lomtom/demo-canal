@@ -56,9 +56,9 @@
 ### 1.3 怎么做？
 
 1. 配置MySQL
-    - 开启binlog
+   - 开启binlog
 2. 配置Canal
-    - 在canal中配置MySQL
+   - 在canal中配置MySQL
 
 ## 2、原理
 
@@ -84,10 +84,10 @@
 
 **作用（适用场景）：**
 
-      1. 读写分离
-      2. 数据库备份
-      3. 数据库负载均衡
-      4. 业务拆分访问
+   1. 读写分离
+   2. 数据库备份
+   3. 数据库负载均衡
+   4. 业务拆分访问
 
 ### 2.2 运用到Canal
 
@@ -117,19 +117,19 @@
 
 ## 4、使用实例
 
-### 4.1 搭建一个主从（k8s环境下）
+### 4.1 MySQL主从模式理解同步机制
 
-搭建k8s主从
+搭建一个主从（k8s环境下）
 
 >  参考：
 >
->  https://zhuanlan.zhihu.com/p/113003682
+> https://zhuanlan.zhihu.com/p/113003682
 >
->  https://blog.csdn.net/qq_41929184/article/details/112306554
+> https://blog.csdn.net/qq_41929184/article/details/112306554
 >
->  https://www.cnblogs.com/xiaoit/p/4489643.html
+> https://www.cnblogs.com/xiaoit/p/4489643.html
 >
->  https://www.cnblogs.com/l-hh/p/9922548.html
+> https://www.cnblogs.com/l-hh/p/9922548.html
 
 ```cmd
 1. 查看主机状态
@@ -247,7 +247,7 @@ FLUSH PRIVILEGES;
   tar zxvf canal.deployer-$version.tar.gz  -C /tmp/canal
   ```
 
-    - 解压完成后，进入 /tmp/canal 目录，可以看到如下结构
+  - 解压完成后，进入 /tmp/canal 目录，可以看到如下结构
 
   ```cmd
   drwxr-xr-x 2 jianghang jianghang  136 2013-02-05 21:51 bin
