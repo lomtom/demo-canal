@@ -1,0 +1,32 @@
+apiVersion: v1
+# 副本控制器
+kind: ReplicationController
+metadata:
+  # RC的名字，全局唯一
+  name: ouyang-mysql-master
+  labels:
+    name: ouyang-mysql-master
+spec:
+  # Pod 副本的期待数量
+  replicas: 1
+  selector:
+    name: ouyang-mysql-pod-master
+  #根据此模板创建Pod的副本(实例)
+  template:
+    metadata:
+      labels:
+        name: ouyang-mysql-pod-master
+    spec:
+      containers:
+        - name: ouyang-mysql
+          image: mysql
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "123456" 
+          args:
+            - --log-bin=mysql-bin
+            - --binlog-ignore-db=mysql
+            - --server-id=1
+            - --symbolic-links=0
