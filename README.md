@@ -349,7 +349,8 @@ password : 212    update=false
 
 3. MySQl新增、更新和 删除字段
    
-   https://www.cnblogs.com/ningqing2015/articles/9799727.html
+>参考:
+>https://www.cnblogs.com/ningqing2015/articles/9799727.html
 ```sql
 1.新增字段
 ALTER TABLE 表名 ADD 字段名 字段类型(字段长度) DEFAULT 默认值 COMMENT '注释';
