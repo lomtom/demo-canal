@@ -1,0 +1,6 @@
+spring:
+  kafka:
+    consumer:
+      group-id: group-user
+server:
+  port: 8081

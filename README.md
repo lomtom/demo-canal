@@ -35,7 +35,7 @@
 
 ### 1.1 是什么？
 
-**Canal**是一个基于MySQL binlog的**高性能数据同步系统**，Canal被阿里巴巴（包括淘宝）都在广泛使用。（纯java开发）
+**Canal**是一个基于MySQL binlog的**高性能数据同步（增量）系统**，Canal被阿里巴巴（包括淘宝）都在广泛使用。（纯java开发）
 
 
 
@@ -69,6 +69,8 @@
 > 1. https://github.com/alibaba/canal/wiki/Introduction
 >
 > 2. https://www.cnblogs.com/rui517hua20/p/10422303.html
+> 
+> 3. 高性能MySQL（第3版）第十章第一节
 
 ----> 主从复制模式
 
@@ -107,13 +109,13 @@
 
 ## 3、使用场景
 
-1. Docker
+1. 同步缓存redis/全文搜索ES
 
-2. RabbitMQ/kafka消息队列
+2. 数据库实时备份
 
-3. 阿里云数据库
+3. 业务cache刷新
 
-4. Prometheus：https://github.com/alibaba/canal/wiki/Prometheus-QuickStart
+4. 带业务逻辑的增量数据处理
 
 ## 4、使用实例
 
@@ -293,12 +295,123 @@ FLUSH PRIVILEGES;
    2021-07-02 16:13:22.261 [destination = example , address = /8.16.0.211:32308 , EventParser] WARN  c.a.o.c.p.inbound.mysql.rds.RdsBinlogEventParserProxy - ---> find start position successfully, EntryPosition[included=false,journalName=mysql-bin.000004,position=5440,serverId=1,gtid=,timestamp=1625212991000] cost : 267ms , the next step is binlog dump
    ```
 
-  
+## 5 实现Canal发送消息至kafka
+为了
+前提
+1. 安装zookeeper
+2. 安装kafka
+
+第一步：修改canal的config/example/instance.properties
+```properties
+# mq config
+canal.mq.topic=user
+# dynamic topic route by schema or table regex
+#canal.mq.dynamicTopic=mytest1.user,mytest2\\..*,.*\\..*
+canal.mq.partition=0
+```
+
+第二步：修改canal的config/server.properties
+```properties
+1.修改消费模式
+# tcp, kafka, rocketMQ, rabbitMQ
+canal.serverMode = kafka
+
+2.新增
+# kafka/rocketmq 集群配置: 192.168.1.117:9092,192.168.1.118:9092,192.168.1.119:9092
+canal.mq.servers = localhost:9092
+canal.mq.retries = 0
+# flagMessage模式下可以调大该值, 但不要超过MQ消息体大小上限
+canal.mq.batchSize = 16384
+canal.mq.maxRequestSize = 1048576
+# flatMessage模式下请将该值改大, 建议50-200
+canal.mq.lingerMs = 1
+canal.mq.bufferMemory = 33554432
+# Canal的batch size, 默认50K, 由于kafka最大消息体限制请勿超过1M(900K以下)
+canal.mq.canalBatchSize = 50
+# Canal get数据的超时时间, 单位: 毫秒, 空为不限超时
+canal.mq.canalGetTimeout = 100
+# 是否为flat json格式对象
+canal.mq.flatMessage = true
+canal.mq.compressionType = none
+canal.mq.acks = all
+# kafka消息投递是否使用事务
+canal.mq.transaction = true
+```
+第三步：运行kafka
+```cmd
+bin/windows/kafka-server-start.bat config/server.properties
+```
+
+第四步：查看消费记录
+```cmd
+bin/windows/kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic 名字 --from-beginning
+```
+
+或使用代码
+```java
+
+<!--引入kafka依赖-->
+<dependency>
+    <groupId>org.springframework.kafka</groupId>
+    <artifactId>spring-kafka</artifactId>
+</dependency>
+
+@KafkaListener(topics = "user")
+public void consumer(ConsumerRecord consumerRecord){
+        System.out.println("消费。。。。。。。");
+        Optional<Object> kafkaMassage = Optional.ofNullable(consumerRecord.value());
+        if(kafkaMassage.isPresent()){
+        Object o = kafkaMassage.get();
+        System.out.println(o);
+    }
+}
+```
+修改数据库后，查看记录：
+```json
+{
+  "data": [
+    {
+      "id": "11",
+      "username": "123",
+      "password": "123",
+      "tel_new": "123"
+    }
+  ],
+  "database": "canal",
+  "es": 1625469394000,
+  "id": 3,
+  "isDdl": false,
+  "mysqlType": {
+    "id": "int",
+    "username": "varchar(255)",
+    "password": "varchar(255)",
+    "tel_new": "varchar(100)"
+  },
+  "old": [
+    {
+      "username": "1",
+      "password": "1"
+    }
+  ],
+  "pkNames": [
+    "id"
+  ],
+  "sql": "",
+  "sqlType": {
+    "id": 4,
+    "username": 12,
+    "password": 12,
+    "tel_new": 12
+  },
+  "table": "user",
+  "ts": 1625469308716,
+  "type": "UPDATE"
+}
+
+```
 
 
-
-
-知识补充：
+## 知识补充：
 1. DDL和DML
 
 https://www.jb51.net/article/40359.htm
@@ -366,3 +479,8 @@ ALTER TABLE 表名 CHANGE 旧字段名  新字段名 新数据类型;
 ALTER TABLE 表名 DROP 字段名;
 例如：ALTER TABLE user DROP tel_new ;
 ```
+
+4. 数据同步全量与增量
+> 参考：
+> 
+> https://www.cnblogs.com/big1987/p/8522884.html
