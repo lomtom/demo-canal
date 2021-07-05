@@ -88,7 +88,7 @@ public class CanalClient implements InitializingBean {
                     eventType));
             //判断是否是DDL语句
             if (rowChage.getIsDdl()) {
-                System.out.println("================》;isDdl: true,sql:" + rowChage.getSql());
+                System.out.println("------->;isDdl: true    ------->   sql:" + rowChage.getSql());
             }
             //获取RowChange对象里的每一行数据，打印出来
             for (RowData rowData : rowChage.getRowDatasList()) {

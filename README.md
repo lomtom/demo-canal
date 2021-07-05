@@ -293,4 +293,74 @@ FLUSH PRIVILEGES;
    2021-07-02 16:13:22.261 [destination = example , address = /8.16.0.211:32308 , EventParser] WARN  c.a.o.c.p.inbound.mysql.rds.RdsBinlogEventParserProxy - ---> find start position successfully, EntryPosition[included=false,journalName=mysql-bin.000004,position=5440,serverId=1,gtid=,timestamp=1625212991000] cost : 267ms , the next step is binlog dump
    ```
 
+  
+
+
+
+
+知识补充：
+1. DDL和DML
+
+https://www.jb51.net/article/40359.htm
+>DML（data manipulation language）：
+>
+> 它们是SELECT、UPDATE、INSERT、DELETE，就象它的名字一样，这4条命令是用来对数据库里的数据进行操作的语言
+>
+>DDL（data definition language）：
+>
+>DDL比DML要多，主要的命令有CREATE、ALTER、DROP等，DDL主要是用在定义或改变表（TABLE）的结构，数据类型，表之间的链接和约束等初始化工作上，他们大多在建立表时使用
+>
+>DCL（Data Control Language）：
+>
+>是数据库控制功能。是用来设置或更改数据库用户或角色权限的语句，包括（grant,deny,revoke等）语句。在默认状态下，只有sysadmin,dbcreator,db_owner或db_securityadmin等人员才有权力执行DCL
+
+
+2. 运行结果记录
+```bash
+1. 新增
+
+================》; binlog[mysql-bin.000004:10218] , name[canal,user] , eventType : INSERT
+id : 11    update=true
+username : 1    update=true
+password : 1    update=true
+
+2.更新
+================》; binlog[mysql-bin.000004:9905] , name[canal,user] , eventType : UPDATE
+------->; before
+id : 1    update=false
+username : 123    update=false
+password : 123    update=false
+------->; after
+id : 1    update=false
+username : 1234    update=true
+password : 123    update=false
+
+
+3.删除
+================》; binlog[mysql-bin.000004:10510] , name[canal,user] , eventType : DELETE
+id : 22    update=false
+username : 123453    update=false
+password : 212    update=false
+
+4.DDl操作
+================》; binlog[mysql-bin.000004:11223] , name[canal,user] , eventType : ALTER
+------->;isDdl: true    ------->   sql:ALTER TABLE user CHANGE tel tel_new varchar(100)
+```
+
+3. MySQl新增、更新和 删除字段
    
+   https://www.cnblogs.com/ningqing2015/articles/9799727.html
+```sql
+1.新增字段
+ALTER TABLE 表名 ADD 字段名 字段类型(字段长度) DEFAULT 默认值 COMMENT '注释';
+例如：ALTER TABLE user ADD tel CHAR(11) DEFAULT NULL COMMENT '手机号';
+
+2.更新字段
+ALTER TABLE 表名 CHANGE 旧字段名  新字段名 新数据类型;
+例如：ALTER TABLE user CHANGE tel tel_new varchar(100);;
+    
+    
+3.删除字段
+ALTER TABLE 表名 DROP 字段名;
+例如：ALTER TABLE user DROP tel_new ;
+```
