@@ -34,13 +34,13 @@ public class KafkaDemo {
         }
     }
 
-//    public static void main(String[] args) {
-//        /**
-//         * 生成md菜单
-//         */
-//        TocGen tocGen = AtxMarkdownToc.newInstance()
-//                .genTocFile("D:\\project\\demo\\demo-canal\\README.md");
-//        System.out.println(tocGen);
-//
-//    }
+    public static void main(String[] args) {
+        /**
+         * 生成md菜单
+         */
+        TocGen tocGen = AtxMarkdownToc.newInstance()
+                .genTocFile("D:\\project\\demo\\demo-canal\\README.md");
+        System.out.println(tocGen);
+
+    }
 }
