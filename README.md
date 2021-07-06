@@ -1,3 +1,4 @@
+
 > 分享内容：**Canal**
 >
 > 分享人：**欧阳隆桐**
@@ -8,6 +9,25 @@
 > 		2. Canal原理
 > 		3. Canal基于代码的实现
 
+# 目录
+
+* [Canal](#canal)
+  * [1、简介](#1、简介)
+    * [1.1 是什么？](#11-是什么？)
+    * [1.2 干什么？](#12-干什么？)
+    * [1.3 怎么做？](#13-怎么做？)
+  * [2、原理](#2、原理)
+    * [2.1 Mysql原理](#21-mysql原理)
+    * [2.2 运用到Canal](#22-运用到canal)
+  * [3、使用场景](#3、使用场景)
+  * [4、使用实例](#4、使用实例)
+    * [4.1 MySQL主从模式理解同步机制](#41-mysql主从模式理解同步机制)
+    * [4.2 配置Canal与MySQL的通信](#42-配置canal与mysql的通信)
+    * [4.3 实现Canal发送消息至kafka](#43-实现canal发送消息至kafka)
+    * [4.4 基于java直接消费Canal](#44-基于java直接消费canal)
+  * [知识补充：](#知识补充：)
+    
+
 
 
 
@@ -17,8 +37,6 @@
 官网：https://github.com/alibaba/canal/
 
 
-
-[TOC]
 
 
 
@@ -357,9 +375,9 @@ bin/windows/kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic
 
 @KafkaListener(topics = "user")
 public void consumer(ConsumerRecord consumerRecord){
-        System.out.println("消费。。。。。。。");
-        Optional<Object> kafkaMassage = Optional.ofNullable(consumerRecord.value());
-        if(kafkaMassage.isPresent()){
+    System.out.println("消费。。。。。。。");
+    Optional<Object> kafkaMassage = Optional.ofNullable(consumerRecord.value());
+    if(kafkaMassage.isPresent()){
         Object o = kafkaMassage.get();
         System.out.println(o);
     }
