@@ -150,6 +150,8 @@
 > https://www.cnblogs.com/xiaoit/p/4489643.html
 >
 > https://www.cnblogs.com/l-hh/p/9922548.html
+> 
+> https://www.cnblogs.com/wajika/p/6710458.html （server_id）
 
 ```cmd
 1. 查看主机状态
