@@ -1,21 +1,3 @@
-# Table of Contents
-
-* [Canal](#canal)
-  * [1、简介](#1、简介)
-    * [1.1 是什么？](#11-是什么？)
-    * [1.2 干什么？](#12-干什么？)
-    * [1.3 怎么做？](#13-怎么做？)
-  * [2、原理](#2、原理)
-    * [2.1 Mysql原理](#21-mysql原理)
-    * [2.2 运用到Canal](#22-运用到canal)
-  * [3、使用场景](#3、使用场景)
-  * [4、使用示例](#4、使用示例)
-    * [4.1 MySQL主从模式理解同步机制](#41-mysql主从模式理解同步机制)
-    * [4.2 配置Canal与MySQL的通信](#42-配置canal与mysql的通信)
-    * [4.3 实现Canal发送消息至kafka](#43-实现canal发送消息至kafka)
-    * [4.4 基于java直接消费Canal](#44-基于java直接消费canal)
-  * [知识补充：](#知识补充：)
-
 
 
 > 分享内容：**Canal**
@@ -152,6 +134,20 @@
 > https://www.cnblogs.com/l-hh/p/9922548.html
 > 
 > https://www.cnblogs.com/wajika/p/6710458.html （server_id）
+
+```cmd
+1. 查看是否开启
+show variables like 'log_%';
+
+2.修改mysql.cnf(一般处于/etc/mysql/mysql.cnf.d或/etc/mysql/cnf.d)
+ # 开启 binlog
+log-bin=mysql-bin
+# 选择 ROW 模式
+binlog-format=ROW 
+# 配置server_id 要求主从不一致
+server_id=1 
+```
+
 
 ```cmd
 1. 查看主机状态
@@ -540,6 +536,125 @@ public class CanalClient implements InitializingBean {
 
 ```
 
+
+
+### 4.5 基于Canal实现MySQl到MySQL的同步
+
+回归初心，既然阿里是为了解决双机房之间的MySQL数据同步问题，那么我们也要从这最根本通过Canal实现MySQL到MySQL之间的同步
+
+阿里的数据同步不仅仅使用Canal这么简单，还需要搭配ETL来实现双机房同步
+![](https://img-blog.csdnimg.cn/20210710143152645.png)
+
+
+
+第一步：下载Canal-server，实现Canal与MySQL的同步，步骤如4.2所示
+第二部：下载canal-adapter，并且配置适配器
+```yml
+1. conf目录下application.yml
+server:
+  port: 8081
+spring:
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    default-property-inclusion: non_null
+
+canal.conf:
+  mode: tcp #tcp kafka rocketMQ rabbitMQ
+  flatMessage: true
+  zookeeperHosts:
+  syncBatchSize: 1000
+  retries: 0
+  timeout:
+  accessKey:
+  secretKey:
+  consumerProperties:
+    # canal tcp consumer
+    canal.tcp.server.host: 127.0.0.1:11111
+    canal.tcp.zookeeper.hosts:
+    canal.tcp.batch.size: 500
+    canal.tcp.username:
+    canal.tcp.password:
+    # kafka consumer
+    kafka.bootstrap.servers: 127.0.0.1:9092
+    kafka.enable.auto.commit: false
+    kafka.auto.commit.interval.ms: 1000
+    kafka.auto.offset.reset: latest
+    kafka.request.timeout.ms: 40000
+    kafka.session.timeout.ms: 30000
+    kafka.isolation.level: read_committed
+    kafka.max.poll.records: 1000
+    # rocketMQ consumer
+    rocketmq.namespace:
+    rocketmq.namesrv.addr: 127.0.0.1:9876
+    rocketmq.batch.size: 1000
+    rocketmq.enable.message.trace: false
+    rocketmq.customized.trace.topic:
+    rocketmq.access.channel:
+    rocketmq.subscribe.filter:
+    # rabbitMQ consumer
+    rabbitmq.host:
+    rabbitmq.virtual.host:
+    rabbitmq.username:
+    rabbitmq.password:
+    rabbitmq.resource.ownerId:
+
+  srcDataSources:
+    defaultDS:
+      url: jdbc:mysql://8.16.0.211:32308/canal?useUnicode=true
+      username: root
+      password: 123456
+  canalAdapters:
+    - instance: example # canal instance Name or mq topic name
+      groups:
+        - groupId: g1
+          outerAdapters:
+            - name: logger
+            - name: rdb
+              key: mysql1
+              properties:
+                jdbc.driverClassName: com.mysql.jdbc.Driver
+                jdbc.url: jdbc:mysql://8.16.0.211:32306/canal?useUnicode=true
+                jdbc.username: root
+                jdbc.password: 123456
+
+
+
+2. conf/rdb自定义配置文件canal_user.yml
+dataSourceKey: defaultDS
+destination: example
+groupId: g1
+outerAdapterKey: mysql1
+concurrent: true
+dbMapping:
+  database: canal
+  table: user
+  targetTable: canal.user
+  targetPk:
+    id: id
+  #  mapAll: true
+  targetColumns:
+    id: id
+    username: username
+    password: password
+    tel_new: tel_new
+  etlCondition: "where c_time>={}"
+  commitBatch: 3000 # 批量提交的大小
+```
+第三步：先后启动canal-server,canal-adapter,日志如下
+```cmd
+2021-07-10 14:21:45.387 [Thread-4] INFO  c.a.otter.canal.adapter.launcher.loader.AdapterProcessor - =============> Start to connect destination: example <=============
+2021-07-10 14:21:45.387 [main] INFO  c.a.o.canal.adapter.launcher.loader.CanalAdapterService - ## the canal client adapters are running now ......
+2021-07-10 14:21:45.393 [main] INFO  org.apache.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8081"]
+2021-07-10 14:21:45.398 [main] INFO  org.apache.tomcat.util.net.NioSelectorPool - Using a shared selector for servlet write/read
+2021-07-10 14:21:45.410 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8081 (http) with context path ''
+2021-07-10 14:21:45.412 [main] INFO  c.a.otter.canal.adapter.launcher.CanalAdapterApplication - Started CanalAdapterApplication in 2.669 seconds (JVM running for 3.033)
+```
+第四步：改变主库，目标数据库同样发生变化,并且adapter打印相关日志
+```cmd
+2021-07-10 14:21:51.572 [pool-7-thread-1] INFO  c.a.o.canal.client.adapter.logger.LoggerAdapterExample - DML: {"data":[{"id":13,"username":"123","password":"123123","tel_new":"213"}],"database":"canal","destination":"example","es":1625898193000,"groupId":"g1","isDdl":false,"old":[{"password":"123"}],"pkNames":["id"],"sql":"","table":"user","ts":1625898111524,"type":"UPDATE"}
+2021-07-10 14:21:51.593 [pool-2-thread-1] DEBUG c.a.o.canal.client.adapter.rdb.service.RdbSyncService - DML: {"data":{"id":13,"username":"123","password":"123123","tel_new":"213"},"database":"canal","destination":"example","old":{"password":"123"},"table":"user","type":"UPDATE"}
+```
 
 ## 知识补充：
 1. DDL和DML
