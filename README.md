@@ -546,6 +546,8 @@ public class CanalClient implements InitializingBean {
 ![](https://img-blog.csdnimg.cn/20210710143152645.png)
 
 
+这里只是实现同步，暂时去掉ETL的过程
+
 
 第一步：下载Canal-server，实现Canal与MySQL的同步，步骤如4.2所示
 第二部：下载canal-adapter，并且配置适配器
